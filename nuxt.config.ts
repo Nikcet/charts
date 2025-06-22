@@ -10,5 +10,14 @@ export default defineNuxtConfig({
     '@nuxt/test-utils',
     '@nuxt/ui',
     '@nuxt/fonts'
-  ]
+  ],
+  $production: {
+    routeRules: {
+      "/**": {isr: true}
+    }
+  },
+  $development: {},
+  $env: {
+    staging: {}
+  }
 })
