@@ -1,0 +1,15 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model bitcoin_prices {
+  id        Int      @id @default(autoincrement())
+  timestamp DateTime @unique
+  price     Float
+  symbol    String   @default("BTCUSDT")
+}
