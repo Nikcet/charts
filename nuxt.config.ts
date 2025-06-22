@@ -19,5 +19,8 @@ export default defineNuxtConfig({
   $development: {},
   $env: {
     staging: {}
+  },
+  nitro: {
+    plugins: ['~/server/plugins/scheduler.ts']
   }
 })
