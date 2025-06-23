@@ -121,13 +121,12 @@ function refresh() {
 </template>
 
 <style>
-/* Адаптивность */
 .container {
-  max-width: 1200px;
+  max-width: 1600px;
+  width: 94%;
   margin: 0 auto;
   padding: 0 20px;
   text-align: center;
   margin-bottom: 20px;
-
 }
 </style>
