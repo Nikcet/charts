@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import redis from '../utils/redis'
 import { getData } from '../utils/utils';
-import prisma from '../utils/prisma';
+import { prisma } from '../utils/prisma';
 
 const querySchema = z.object({
     startTime: z.string().datetime().optional(),
