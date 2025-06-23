@@ -9,7 +9,8 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "seed": "tsx server/scripts/seed.ts",
-    "prisma:generate": "prisma generate"
+    "prisma:generate": "prisma generate",
+    "start": "npm run dev"
   },
   "dependencies": {
     "@nuxt/fonts": "^0.11.4",
