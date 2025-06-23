@@ -1,7 +1,10 @@
 import binanceService from './binance.service.js';
 import pool from '../utils/db.js';
+import { saveData } from '../utils/utils.js';
+import { DEPTH_OF_DATA_HISTORY, MIN_INTERVAL } from '../utils/config.js';
 
-// Проверка существующих данных
+
+
 async function exists(timestamp: Date): Promise<boolean> {
   const res = await pool.query(
     'SELECT 1 FROM bitcoin_prices WHERE timestamp = $1',
@@ -11,44 +14,38 @@ async function exists(timestamp: Date): Promise<boolean> {
   return res?.rowCount > 0;
 }
 
-// Сохранение данных в БД
-async function saveData(data: { timestamp: Date; price: number }[]) {
-  for (const item of data) {
-    if (!(await exists(item.timestamp))) {
-      await pool.query(
-        'INSERT INTO bitcoin_prices (timestamp, price) VALUES ($1, $2)',
-        [item.timestamp, item.price]
-      );
-    }
-  }
-}
 
-// Задача для cron
 export async function fetchAndSave() {
+
   try {
     const lastEntry = await pool.query(
       'SELECT timestamp FROM bitcoin_prices ORDER BY timestamp DESC LIMIT 1'
     );
-    
-    const startTime = lastEntry.rows[0] 
-      ? lastEntry.rows[0].timestamp.getTime() + 1 
-      : Date.now() - 365 * 2 * 24 * 60 * 60 * 1000; // 2 года назад
 
-    const newData = await binanceService.fetchData(startTime);
+    const past = new Date();
+    past.setFullYear(past.getFullYear() - DEPTH_OF_DATA_HISTORY);
+
+    const startTime = lastEntry.rows[0]
+      ? lastEntry.rows[0].timestamp.getTime() + 1
+      : past.getTime();
+
+    const newData = await binanceService.fetchData(startTime, `${MIN_INTERVAL}h`);
     await saveData(newData);
-    
+
     console.log(`Saved ${newData.length} records`);
+
   } catch (error) {
+
     console.error('Cron job failed:', error);
-    // Ретраи через 1 мин при ошибках
-    setTimeout(fetchAndSave, 60 * 1000);
+
+    setTimeout(fetchAndSave, 60 * 1000); // retry in 1 minute
+
   }
 }
 
 export function initScheduler() {
-  // Запуск каждые 5 минут
+
   fetchAndSave();
-  
-  // Интервал 5 минут
-  setInterval(fetchAndSave, 5 * 60 * 1000);
+
+  setInterval(fetchAndSave, 1000 * 60 * 60 * MIN_INTERVAL); // per 2 hour
 }
