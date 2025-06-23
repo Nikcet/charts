@@ -9,7 +9,8 @@ import {
     Title,
     Tooltip,
     Legend,
-    TimeScale
+    TimeScale,
+    Filler,
 } from 'chart.js'
 import 'chartjs-adapter-date-fns'
 
@@ -21,7 +22,8 @@ ChartJS.register(
     Title,
     Tooltip,
     Legend,
-    TimeScale
+    TimeScale,
+    Filler,
 )
 
 const props = defineProps({
@@ -35,7 +37,7 @@ const props = defineProps({
 
 const chartOptions = {
     responsive: true,
-    maintainAspectRatio: true,
+    maintainAspectRatio: false,
     scales: {
         x: {
             type: 'time' as const,
@@ -58,7 +60,9 @@ const chartOptions = {
             title: {
                 display: true,
                 text: 'Цена (USD)'
-            }
+            },
+            beginAtZero: false,
+            grace: '5%'
         }
     },
     plugins: {
@@ -79,8 +83,11 @@ const dataset = computed(() => ({
     backgroundColor: 'rgba(52, 152, 219, 0.1)',
     borderWidth: 2,
     pointBackgroundColor: '#2980b9',
-    tension: 0.1, 
-    fill: true
+    tension: 0.5,
+    fill: {
+        target: 'origin', // Заливка от линии до оси X
+        above: 'rgba(52, 152, 219, 0.1)', // Цвет выше базовой линии
+    }
 }))
 </script>
 
@@ -98,7 +105,7 @@ const dataset = computed(() => ({
 
 <style>
 .chart {
-    height: 70vh;
+    height: 80vh;
     width: 100%;
 }
 </style>
