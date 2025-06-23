@@ -41,7 +41,7 @@ const chartOptions = {
             type: 'time' as const,
             time: {
                 unit: 'day' as const,
-                tooltipFormat: 'dd.MM.yyyy',
+                tooltipFormat: 'dd.MM.yyyy HH:mm',
                 displayFormats: {
                     day: 'dd.MM.yyyy',
                     week: 'dd.MM.yyyy',
