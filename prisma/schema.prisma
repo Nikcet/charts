@@ -9,7 +9,7 @@ datasource db {
 
 model bitcoin_prices {
   id        Int      @id @default(autoincrement())
-  timestamp DateTime @unique
+  timestamp DateTime @db.Timestamptz @unique
   price     Float
   symbol    String   @default("BTCUSDT")
 }
