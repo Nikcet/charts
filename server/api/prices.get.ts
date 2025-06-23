@@ -1,7 +1,7 @@
 import { z } from 'zod'
-import redis from '../utils/redis'
-import { getData } from '../utils/utils';
-import prisma from '../utils/prisma';
+import redisClient from '../utils/redis'
+import { getData } from '../utils/utils'
+import prisma from '../utils/prisma'
 
 const querySchema = z.object({
     startTime: z.string().datetime().optional(),
@@ -24,37 +24,33 @@ export default defineEventHandler(async (event) => {
     const { startTime, endTime, range } = result.data
     const now = new Date()
 
-    let start = new Date(now)
-    let end = new Date(now)
+    const start = startTime ? new Date(startTime) : new Date()
+    const end = endTime ? new Date(endTime) : now
+
+    if (!startTime && !range) {
+        start.setTime(0) // epoch
+    }
 
     if (range) {
         switch (range) {
             case 'day':
                 start.setDate(now.getDate() - 1)
-                end.setDate(now.getDate())
                 break
             case 'week':
                 start.setDate(now.getDate() - 7)
-                end.setDate(now.getDate())
                 break
             case 'month':
                 start.setMonth(now.getMonth() - 1)
-                end.setMonth(now.getMonth())
                 break
             case 'year':
                 start.setFullYear(now.getFullYear() - 1)
-                end.setFullYear(now.getFullYear())
                 break
-
         }
-    } else {
-        start = startTime ? new Date(startTime) : new Date(0)
-        end = endTime ? new Date(endTime) : new Date()
     }
 
-    // Проверка кэша
     const cacheKey = `prices:${start.toISOString()}:${end.toISOString()}`
-    const cached = await (await redis).get(cacheKey)
+    const redis = await redisClient
+    const cached = await redis.get(cacheKey)
 
     if (cached) {
         setHeader(event, 'X-Cache', 'HIT')
@@ -80,14 +76,15 @@ export default defineEventHandler(async (event) => {
             }
         })
     } else {
-        const interval = range === 'week' ? 'hour' : 'day'
+        const interval = range === 'week' ? 'day'
+            : range === 'month' ? 'day'
+                : range === 'year' ? 'week'
+                    : 'day'
 
-        data = getData(interval, start, end);
+        data = await getData(interval, start, end)
     }
 
-    // Кэширование
-    await (await redis).set(cacheKey, JSON.stringify(data), { EX: 300 })
-
+    await redis.set(cacheKey, JSON.stringify(data), { EX: 300 })
     setHeader(event, 'X-Cache', 'MISS')
     return data
 })

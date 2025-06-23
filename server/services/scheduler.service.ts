@@ -36,7 +36,7 @@ export async function fetchAndSave() {
 
   } catch (error) {
 
-    console.error('Cron job failed:', error);
+    console.error('Schedule error', error);
 
     setTimeout(fetchAndSave, 60 * 1000); // retry in 1 minute
 

@@ -1,9 +1,13 @@
 import binanceService from '../services/binance.service.js';
-import pool from '../utils/db.js';
+import pool, { waitForDatabase } from '../utils/db.js';
 import { DEPTH_OF_DATA_HISTORY, MIN_INTERVAL } from '../utils/config.js';
 import { saveData } from '../utils/utils.js';
+import { config } from 'dotenv';
+
+config();
 
 async function seedHistoricalData() {
+  await waitForDatabase();
   const past = new Date();
   past.setFullYear(past.getFullYear() - DEPTH_OF_DATA_HISTORY);
 
