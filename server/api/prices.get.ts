@@ -1,8 +1,8 @@
 import { z } from 'zod'
 import redis from '../utils/redis'
-import { PrismaClient } from '@prisma/client'
+import { getData } from '../utils/utils';
+import prisma from '../utils/prisma';
 
-const prisma = new PrismaClient()
 const querySchema = z.object({
     startTime: z.string().datetime().optional(),
     endTime: z.string().datetime().optional(),
@@ -10,7 +10,6 @@ const querySchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-    // Валидация параметров
     const query = getQuery(event)
     const result = querySchema.safeParse(query)
 
@@ -25,15 +24,29 @@ export default defineEventHandler(async (event) => {
     const { startTime, endTime, range } = result.data
     const now = new Date()
 
-    // Рассчет диапазона
     let start = new Date(now)
     let end = new Date(now)
 
     if (range) {
-        if (range === 'day') start.setDate(now.getDate() - 1)
-        if (range === 'week') start.setDate(now.getDate() - 7)
-        if (range === 'month') start.setMonth(now.getMonth() - 1)
-        if (range === 'year') start.setFullYear(now.getFullYear() - 1)
+        switch (range) {
+            case 'day':
+                start.setDate(now.getDate() - 1)
+                end.setDate(now.getDate())
+                break
+            case 'week':
+                start.setDate(now.getDate() - 7)
+                end.setDate(now.getDate())
+                break
+            case 'month':
+                start.setMonth(now.getMonth() - 1)
+                end.setMonth(now.getMonth())
+                break
+            case 'year':
+                start.setFullYear(now.getFullYear() - 1)
+                end.setFullYear(now.getFullYear())
+                break
+
+        }
     } else {
         start = startTime ? new Date(startTime) : new Date(0)
         end = endTime ? new Date(endTime) : new Date()
@@ -48,12 +61,10 @@ export default defineEventHandler(async (event) => {
         return JSON.parse(cached)
     }
 
-    // Запрос к БД через Prisma
     let data
 
     if (range === 'day') {
-        // Точные данные для дня
-        data = await prisma.bitcoinPrice.findMany({
+        data = await prisma.bitcoin_prices.findMany({
             where: {
                 timestamp: {
                     gte: start,
@@ -69,25 +80,13 @@ export default defineEventHandler(async (event) => {
             }
         })
     } else {
-        // Агрегация для больших периодов
         const interval = range === 'week' ? 'hour' : 'day'
 
-        // Используем Prisma raw query для агрегации
-        data = await prisma.$queryRaw`
-      SELECT 
-        date_trunc(${interval}, timestamp) as time_bucket,
-        AVG(price) as avg_price
-      FROM bitcoin_prices
-      WHERE timestamp BETWEEN ${start} AND ${end}
-      GROUP BY time_bucket
-      ORDER BY time_bucket ASC
-    `
+        data = getData(interval, start, end);
     }
 
     // Кэширование
-    await (await redis).set(cacheKey, JSON.stringify(data), {
-        EX: 300
-    })
+    await (await redis).set(cacheKey, JSON.stringify(data), { EX: 300 })
 
     setHeader(event, 'X-Cache', 'MISS')
     return data
